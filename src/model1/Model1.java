@@ -9,12 +9,17 @@ public class Model1 extends BaseParser{
 	
 	class ProbUnit{
 		double condProb;
-		HashMap<Integer,Double> sentenceMap;
+		double partialCount;
 		//index is key, while double is value(count)
 		
 		public ProbUnit(){
 			condProb=1;
-			sentenceMap=new HashMap<Integer,Double>();
+			partialCount=0;
+		}
+		
+		public ProbUnit(int prob,int count){
+			condProb=prob;
+			partialCount=count;
 		}
 	}
 	
@@ -71,8 +76,7 @@ public class Model1 extends BaseParser{
 				if(!subMap.containsKey(vword)){
 					subMap.put(vword,new ProbUnit());
 				}
-				HashMap<Integer,Double> lineMap=subMap.get(vword).sentenceMap;
-				lineMap.put(index,partialCount);
+				subMap.get(vword).partialCount+=partialCount;
 			}
 		}
 		
@@ -81,6 +85,14 @@ public class Model1 extends BaseParser{
 	public double updatePartialCountAndProb(){
 		
 		double resultProb=0.0;
+		//clear the number of each pair
+		for(String kword:translationProbMap.keySet()){
+			HashMap<String,ProbUnit> subMap=translationProbMap.get(kword);
+			for(String vword:subMap.keySet()){
+				subMap.get(vword).partialCount=0;
+			}
+		}
+		
 		for(int lineCount=1;lineCount<=totalLineCount;lineCount++){
 			//for this line update the partial count
 			ArrayList<String>[] linePair=linePairMap.get(lineCount);
@@ -101,8 +113,7 @@ public class Model1 extends BaseParser{
 				HashMap<String,ProbUnit> subMap=translationProbMap.get(kword);
 				for(String vword:linePair[1]){
 					ProbUnit unit=subMap.get(vword);
-					assert(unit.sentenceMap.containsKey(lineCount));
-					unit.sentenceMap.put(lineCount,unit.condProb/totalProbMap.get(vword));
+					unit.partialCount+=unit.condProb/totalProbMap.get(vword);
 				}
 			}
 			
@@ -116,17 +127,10 @@ public class Model1 extends BaseParser{
 			double count=0;
 			HashMap<String,ProbUnit> subMap=translationProbMap.get(kword);
 			for(String vword:subMap.keySet()){
-				HashMap<Integer,Double> sentenceMap=subMap.get(vword).sentenceMap;
-				for(Double subCount:sentenceMap.values()){
-					count+=subCount;
-				}
+				count+=subMap.get(vword).partialCount;
 			}	
 			for(String vword:subMap.keySet()){
-				double unitCount=0;
-				HashMap<Integer,Double> sentenceMap=subMap.get(vword).sentenceMap;
-				for(Double subCount:sentenceMap.values()){
-					unitCount+=subCount;
-				}
+				double unitCount=subMap.get(vword).partialCount;
 				subMap.get(vword).condProb=unitCount/count;
 			}
 		}
@@ -139,6 +143,7 @@ public class Model1 extends BaseParser{
 		double curProb=updatePartialCountAndProb();
 		
 		while(Math.abs(curProb-prevProb)>10){
+			System.out.println(curProb-prevProb);
 			prevProb=curProb;
 			curProb=updatePartialCountAndProb();
 		}
@@ -182,6 +187,7 @@ public class Model1 extends BaseParser{
 		Model1 model=new Model1();
 		model.trainParameter(args[0], args[1]);
 		model.saveTranslationMapToFile(args[2]);
+		System.out.println("Finished");
 	}
 	
 	
