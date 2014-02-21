@@ -32,6 +32,18 @@ public abstract class BaseParser {
 		}
 	}
 	
+	protected double getLanguageLogProb(String kfile,String testFile){
+		PaddedUnigramModel uniModel=new PaddedUnigramModel();
+		uniModel.trainModel(kfile);
+		//optimize alpha
+		double alpha=1.5;
+		//initialize bigram model and save training data to its map
+		BigramModel biModel=new BigramModel(uniModel,alpha);
+		biModel.trainModel(kfile);
+		double beta=120;
+		return biModel.getLogModelProbFromFile(testFile,beta);
+	}
+	
 	@SuppressWarnings({ "rawtypes"})
 	abstract void saveLinePairToMap(String kline,String vline,HashMap hashMap,int index);
 }

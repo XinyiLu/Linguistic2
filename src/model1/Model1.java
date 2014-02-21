@@ -46,6 +46,7 @@ public class Model1 extends BaseParser{
 		}
 		
 		assert(klist.size()>0&&vlist.size()>0);
+		linePairMap.put(index,(ArrayList<String>[])(new ArrayList[]{klist,vlist}));
 		double partialCount=1.0/klist.size();
 		for(String kword:kwords){
 			if(!map.containsKey(kword)){
@@ -63,12 +64,75 @@ public class Model1 extends BaseParser{
 		
 	}
 	
-	public void updatePartialCount(HashMap<String,HashMap<String,ProbUnit>> hashMap){
+	public double updatePartialCountAndProb(){
+		
+		double resultProb=0.0;
 		for(int lineCount=1;lineCount<=totalLineCount;lineCount++){
 			//for this line update the partial count
+			ArrayList<String>[] linePair=linePairMap.get(lineCount);
+			assert(linePair!=null&&linePair.length==2);
+			//for each pair of words, update the count
+			//first need to get P(fk) for each vword, keep a hashmap for this
+			HashMap<String,Double> totalProbMap=new HashMap<String,Double>();	
+			for(String kword:linePair[0]){
+				HashMap<String,ProbUnit> subMap=translationProbMap.get(kword);
+				for(String vword:linePair[1]){
+					assert(subMap.containsKey(vword));
+					totalProbMap.put(vword,(totalProbMap.containsKey(vword)?totalProbMap.get(vword):0)+subMap.get(vword).condProb);
+				}
+			}
 			
+			//update the partial count for each pair
+			for(String kword:linePair[0]){
+				HashMap<String,ProbUnit> subMap=translationProbMap.get(kword);
+				for(String vword:linePair[1]){
+					ProbUnit unit=subMap.get(vword);
+					assert(unit.sentenceMap.containsKey(lineCount));
+					unit.sentenceMap.put(lineCount,unit.condProb/totalProbMap.get(vword));
+				}
+			}
+			
+			for(double prob:totalProbMap.values()){
+				resultProb+=Math.log(prob);
+			}
 		}
 		
+		//update the conditional probability like p(f|e)
+		for(String kword:translationProbMap.keySet()){
+			double count=0;
+			HashMap<String,ProbUnit> subMap=translationProbMap.get(kword);
+			for(String vword:subMap.keySet()){
+				HashMap<Integer,Double> sentenceMap=subMap.get(vword).sentenceMap;
+				for(Double subCount:sentenceMap.values()){
+					count+=subCount;
+				}
+			}	
+			
+			for(String vword:subMap.keySet()){
+				int unitCount=0;
+				for(Double subCount:subMap.get(vword).sentenceMap.values()){
+					unitCount+=subCount;
+				}
+				subMap.get(vword).condProb=unitCount/count;
+			}
+		}
+		
+		return resultProb;
 	}
+
+	public void trainTranslationProb(){
+		double prevProb=0;
+		double curProb=updatePartialCountAndProb();
+		
+		while(Math.abs(prevProb-curProb)>0.000001){
+			prevProb=curProb;
+			curProb=updatePartialCountAndProb();
+		}
+	}
+	
+	
+	
+	
+	
 	
 }
