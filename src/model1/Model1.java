@@ -130,7 +130,18 @@ public class Model1 extends BaseParser{
 		}
 	}
 	
+	public void trainParameter(String kfile,String vfile){
+		parseFileToMap(kfile,vfile,translationProbMap);
+		trainTranslationProb();
+	}
 	
+	public static void main(String[] args){
+		assert(args.length==3);
+		Model1 model=new Model1();
+		model.trainParameter(args[0], args[1]);
+		
+		
+	}
 	
 	
 	

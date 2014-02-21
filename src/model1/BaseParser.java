@@ -10,6 +10,7 @@ public abstract class BaseParser {
 	
 	protected int totalLineCount;
 	
+	
 	@SuppressWarnings({ "rawtypes"})
 	protected void parseFileToMap(String kFile,String vFile,HashMap hashMap){
 		totalLineCount=0;
