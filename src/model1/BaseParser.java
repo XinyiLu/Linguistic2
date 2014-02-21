@@ -31,6 +31,7 @@ public abstract class BaseParser {
 		}catch(IOException e){
 			e.printStackTrace();
 		}
+		System.out.println("file parsed");
 	}
 	
 	protected double getLanguageLogProb(String kfile,String testFile){

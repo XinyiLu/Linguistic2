@@ -1,5 +1,8 @@
 package model1;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 
 public class Model1 extends BaseParser{
@@ -15,13 +18,24 @@ public class Model1 extends BaseParser{
 		}
 	}
 	
+	class TranslationUnit{
+		double transProb;
+		String bestWord;
+		public TranslationUnit(String word,double prob){
+			bestWord=word;
+			transProb=prob;
+		}
+	}
+	
 	HashMap<String,HashMap<String,ProbUnit>> translationProbMap;
 	HashMap<Integer,ArrayList<String>[]> linePairMap;
+	HashMap<String,TranslationUnit> translationUnitMap;
 	
 	
 	public Model1(){
 		translationProbMap=new HashMap<String,HashMap<String,ProbUnit>>();
 		linePairMap=new HashMap<Integer,ArrayList<String>[]>();
+		translationUnitMap=new HashMap<String,TranslationUnit>();
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
@@ -78,10 +92,10 @@ public class Model1 extends BaseParser{
 				HashMap<String,ProbUnit> subMap=translationProbMap.get(kword);
 				for(String vword:linePair[1]){
 					assert(subMap.containsKey(vword));
-					totalProbMap.put(vword,(totalProbMap.containsKey(vword)?totalProbMap.get(vword):0)+subMap.get(vword).condProb);
+					totalProbMap.put(vword,(totalProbMap.containsKey(vword)?totalProbMap.get(vword):0)+subMap.get(vword).condProb);		
 				}
-			}
-			
+			}			
+
 			//update the partial count for each pair
 			for(String kword:linePair[0]){
 				HashMap<String,ProbUnit> subMap=translationProbMap.get(kword);
@@ -94,7 +108,7 @@ public class Model1 extends BaseParser{
 			
 			for(double prob:totalProbMap.values()){
 				resultProb+=Math.log(prob);
-			}
+			}	
 		}
 		
 		//update the conditional probability like p(f|e)
@@ -107,10 +121,10 @@ public class Model1 extends BaseParser{
 					count+=subCount;
 				}
 			}	
-			
 			for(String vword:subMap.keySet()){
-				int unitCount=0;
-				for(Double subCount:subMap.get(vword).sentenceMap.values()){
+				double unitCount=0;
+				HashMap<Integer,Double> sentenceMap=subMap.get(vword).sentenceMap;
+				for(Double subCount:sentenceMap.values()){
 					unitCount+=subCount;
 				}
 				subMap.get(vword).condProb=unitCount/count;
@@ -124,9 +138,21 @@ public class Model1 extends BaseParser{
 		double prevProb=0;
 		double curProb=updatePartialCountAndProb();
 		
-		while(Math.abs(prevProb-curProb)>0.000001){
+		while(Math.abs(curProb-prevProb)>10){
 			prevProb=curProb;
 			curProb=updatePartialCountAndProb();
+		}
+		
+		//update translation unit map
+		for(String kword:translationProbMap.keySet()){
+			HashMap<String,ProbUnit> subMap=translationProbMap.get(kword);
+			for(String vword:subMap.keySet()){
+				if(!translationUnitMap.containsKey(vword)){
+					translationUnitMap.put(vword,new TranslationUnit(kword,subMap.get(vword).condProb));
+				}else if(translationUnitMap.get(vword).transProb<subMap.get(vword).condProb){
+					translationUnitMap.put(vword,new TranslationUnit(kword,subMap.get(vword).condProb));
+				}
+			}
 		}
 	}
 	
@@ -135,12 +161,27 @@ public class Model1 extends BaseParser{
 		trainTranslationProb();
 	}
 	
+	public void saveTranslationMapToFile(String fileName){
+		try {
+			BufferedWriter writer=new BufferedWriter(new FileWriter(fileName));
+			//for each word in keySet of the map, save the key and value and write a new line
+			for(String word:translationUnitMap.keySet()){
+				writer.write(word+" "+translationUnitMap.get(word).bestWord+" "+translationUnitMap.get(word).transProb);
+				writer.newLine();
+			}
+			//close the buffered writer
+			writer.close();
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	public static void main(String[] args){
 		assert(args.length==3);
 		Model1 model=new Model1();
 		model.trainParameter(args[0], args[1]);
-		
-		
+		model.saveTranslationMapToFile(args[2]);
 	}
 	
 	
