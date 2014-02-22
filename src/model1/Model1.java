@@ -149,7 +149,7 @@ public class Model1 extends BaseParser{
 		double prevProb=0;
 		double curProb=updatePartialCountAndProb();
 		
-		while(Math.abs(curProb-prevProb)>1){
+		while(Math.abs(curProb-prevProb)>0.5){
 			System.out.println(curProb-prevProb);
 			prevProb=curProb;
 			curProb=updatePartialCountAndProb();
@@ -242,8 +242,10 @@ public class Model1 extends BaseParser{
 				continue;
 			list.add(word);
 		}
+		if(list.size()>10){
+			return line;
+		}
 		list.add("");
-		
 		//get each word's translation,the first word is padding symbol
 		String prevWord="";
 		for(String word:list){
@@ -251,7 +253,6 @@ public class Model1 extends BaseParser{
 			prevWord=curWord;
 			resultStr+=curWord+" ";
 		}
-	
 		return resultStr.substring(0, resultStr.length()-1);
 	}
 	
@@ -260,7 +261,7 @@ public class Model1 extends BaseParser{
 		if(subMap==null)
 			return word;
 		String bestWord="";
-		double prob=Double.MIN_VALUE;
+		double prob=Integer.MIN_VALUE;
 		for(String testWord:subMap.keySet()){
 			double testProb=Math.log(biModel.getBigramWordSmoothedProb(prevWord, testWord, beta, typeCount))+Math.log(subMap.get(testWord).condProb);
 			if(testProb>prob){
@@ -268,7 +269,6 @@ public class Model1 extends BaseParser{
 				prob=testProb;
 			}
 		}
-		
 		return bestWord;
 	}
 	
@@ -295,7 +295,7 @@ public class Model1 extends BaseParser{
 		Model1 model=new Model1();
 		model.trainParameter(args[1], args[0]);
 		//model.saveTranslationMapToFile(args[2]);
-		
+		System.out.println("probability optimized");
 		
 		//model.translateTestFileWithDumbDecoding(args[3], args[4]);
 		PaddedUnigramModel uniModel=new PaddedUnigramModel();

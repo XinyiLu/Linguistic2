@@ -41,7 +41,7 @@ public class BigramModel extends BaseWordCounter {
 			wordList.add(word);
 		}
 		wordList.add(0,"");
-		
+		wordList.add("");
 		//count the number of each word
 		for(int i=0;i<wordList.size();i++){
 			//if the word is "",ignore it
@@ -104,6 +104,7 @@ public class BigramModel extends BaseWordCounter {
 		if(!unigramMap.containsKey(word1)){
 			return theta;
 		}
+		assert(bigramMap.containsKey(word1));
 		HashMap<String,Integer> subMap=bigramMap.get(word1);
 		int count=0;
 		if(subMap.containsKey(word2)){
