@@ -257,6 +257,8 @@ public class Model1 extends BaseParser{
 	
 	public String getBestWordWithNoisyChannelDecoding(String prevWord,String word,BigramModel biModel,double beta,int typeCount){
 		HashMap<String,ProbUnit> subMap=translationProbMap.get(word);
+		if(subMap==null)
+			return word;
 		String bestWord="";
 		double prob=Double.MIN_VALUE;
 		for(String testWord:subMap.keySet()){
@@ -291,11 +293,11 @@ public class Model1 extends BaseParser{
 	public static void main(String[] args){
 		assert(args.length==3);
 		Model1 model=new Model1();
-		model.trainParameter(args[0], args[1]);
+		model.trainParameter(args[1], args[0]);
 		//model.saveTranslationMapToFile(args[2]);
 		
 		
-		model.translateTestFileWithDumbDecoding(args[3], args[4]);
+		//model.translateTestFileWithDumbDecoding(args[3], args[4]);
 		PaddedUnigramModel uniModel=new PaddedUnigramModel();
 		uniModel.trainModel(args[0]);
 		//optimize alpha
