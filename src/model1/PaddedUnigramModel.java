@@ -18,6 +18,7 @@ public class PaddedUnigramModel extends PlainUnigramModel {
 			}
 		}
 		//use empty string to represent the padding symbol
+		list.add(0,"");
 		list.add("");
 		//count the number of each word
 		for(String word:list){

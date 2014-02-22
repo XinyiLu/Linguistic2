@@ -40,6 +40,7 @@ public class BigramModel extends BaseWordCounter {
 				continue;
 			wordList.add(word);
 		}
+		wordList.add(0,"");
 		
 		//count the number of each word
 		for(int i=0;i<wordList.size();i++){

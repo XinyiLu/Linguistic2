@@ -1,0 +1,5 @@
+#/user/bin/bash
+
+javac model1/*.java
+java model1.Model1 data/english-senate-0.txt data/french-senate-0.txt prob data/french-senate-2.txt dumb_decoding simp_decoding
+

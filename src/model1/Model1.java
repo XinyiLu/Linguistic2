@@ -189,14 +189,14 @@ public class Model1 extends BaseParser{
 		}
 	}
 	
-	public void translateTestFile(String testFile,String resultFile){
+	public void translateTestFileWithDumbDecoding(String testFile,String resultFile){
 		try {
 			BufferedReader reader=new BufferedReader(new InputStreamReader(new FileInputStream(testFile),"ISO-8859-1"));
 			BufferedWriter writer=new BufferedWriter(new FileWriter(resultFile));
 			String line=null;
 			//each time we read a line, count its words
 			while((line=reader.readLine())!=null){
-				writer.write(translateSentence(line));
+				writer.write(translateSentenceWithDumbDecoding(line));
 				writer.newLine();
 			}
 			//close the buffered reader
@@ -208,7 +208,69 @@ public class Model1 extends BaseParser{
 		
 	}
 	
-	public String translateSentence(String line){
+	public void translateTestFileWithNoisyChannelDecoding(String testFile,String resultFile,BigramModel biModel,double beta){
+		try {
+			//first, we need to get the typeCount of the bigram model
+			HashMap tempMap=biModel.generateHashMap();
+			biModel.parseFileToMap(testFile,tempMap);
+			int typeCount=biModel.getTypeCount(tempMap);
+			tempMap.clear();
+			
+			BufferedReader reader=new BufferedReader(new InputStreamReader(new FileInputStream(testFile),"ISO-8859-1"));
+			BufferedWriter writer=new BufferedWriter(new FileWriter(resultFile));
+			String line=null;
+			//each time we read a line, count its words
+			while((line=reader.readLine())!=null){
+				writer.write(translateSentenceWithNoisyChannelDecoding(line,biModel,beta,typeCount));
+				writer.newLine();
+			}
+			//close the buffered reader
+			reader.close();
+			writer.close();
+		}catch(IOException e){
+			e.printStackTrace();
+		}
+		
+	}
+	
+	public String translateSentenceWithNoisyChannelDecoding(String line,BigramModel biModel,double beta,int typeCount){
+		String[] words=line.split(" ");
+		String resultStr="";
+		ArrayList<String> list=new ArrayList<String> (words.length+2);
+		for(String word:words){
+			if(word.isEmpty())
+				continue;
+			list.add(word);
+		}
+		list.add("");
+		
+		//get each word's translation,the first word is padding symbol
+		String prevWord="";
+		for(String word:list){
+			String curWord=getBestWordWithNoisyChannelDecoding(prevWord,word,biModel,beta,typeCount);
+			prevWord=curWord;
+			resultStr+=curWord+" ";
+		}
+	
+		return resultStr.substring(0, resultStr.length()-1);
+	}
+	
+	public String getBestWordWithNoisyChannelDecoding(String prevWord,String word,BigramModel biModel,double beta,int typeCount){
+		HashMap<String,ProbUnit> subMap=translationProbMap.get(word);
+		String bestWord="";
+		double prob=Double.MIN_VALUE;
+		for(String testWord:subMap.keySet()){
+			double testProb=Math.log(biModel.getBigramWordSmoothedProb(prevWord, testWord, beta, typeCount))+Math.log(subMap.get(testWord).condProb);
+			if(testProb>prob){
+				bestWord=testWord;
+				prob=testProb;
+			}
+		}
+		
+		return bestWord;
+	}
+	
+	public String translateSentenceWithDumbDecoding(String line){
 		String[] words=line.split(" ");
 		String resultStr="";
 		
@@ -230,8 +292,19 @@ public class Model1 extends BaseParser{
 		assert(args.length==3);
 		Model1 model=new Model1();
 		model.trainParameter(args[0], args[1]);
-		model.saveTranslationMapToFile(args[2]);
-		model.translateTestFile(args[3], args[4]);
+		//model.saveTranslationMapToFile(args[2]);
+		
+		
+		model.translateTestFileWithDumbDecoding(args[3], args[4]);
+		PaddedUnigramModel uniModel=new PaddedUnigramModel();
+		uniModel.trainModel(args[0]);
+		//optimize alpha
+		double alpha=1.7;
+		//initialize bigram model and save training data to its map
+		BigramModel biModel=new BigramModel(uniModel,alpha);
+		biModel.trainModel(args[0]);
+		double beta=120;
+		model.translateTestFileWithNoisyChannelDecoding(args[3], args[5], biModel, beta);
 		System.out.println("Finished");
 	}
 	
