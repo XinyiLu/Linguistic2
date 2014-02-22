@@ -1,8 +1,11 @@
 package model1;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.*;
 
 public class Model1 extends BaseParser{
@@ -29,6 +32,10 @@ public class Model1 extends BaseParser{
 		public TranslationUnit(String word,double prob){
 			bestWord=word;
 			transProb=prob;
+		}
+		public TranslationUnit(){
+			bestWord=new String();
+			transProb=0;
 		}
 	}
 	
@@ -142,7 +149,7 @@ public class Model1 extends BaseParser{
 		double prevProb=0;
 		double curProb=updatePartialCountAndProb();
 		
-		while(Math.abs(curProb-prevProb)>10){
+		while(Math.abs(curProb-prevProb)>1){
 			System.out.println(curProb-prevProb);
 			prevProb=curProb;
 			curProb=updatePartialCountAndProb();
@@ -182,11 +189,49 @@ public class Model1 extends BaseParser{
 		}
 	}
 	
+	public void translateTestFile(String testFile,String resultFile){
+		try {
+			BufferedReader reader=new BufferedReader(new InputStreamReader(new FileInputStream(testFile),"ISO-8859-1"));
+			BufferedWriter writer=new BufferedWriter(new FileWriter(resultFile));
+			String line=null;
+			//each time we read a line, count its words
+			while((line=reader.readLine())!=null){
+				writer.write(translateSentence(line));
+				writer.newLine();
+			}
+			//close the buffered reader
+			reader.close();
+			writer.close();
+		}catch(IOException e){
+			e.printStackTrace();
+		}
+		
+	}
+	
+	public String translateSentence(String line){
+		String[] words=line.split(" ");
+		String resultStr="";
+		
+		for(String word:words){
+			if(word.isEmpty())
+				continue;
+			if(!translationUnitMap.containsKey(word)){
+				resultStr+=word+" ";
+			}else{
+				TranslationUnit unit=translationUnitMap.get(word);
+				resultStr+=unit.bestWord+" ";
+			}
+		}
+		
+		return resultStr.substring(0,resultStr.length()-1);
+	}
+	
 	public static void main(String[] args){
 		assert(args.length==3);
 		Model1 model=new Model1();
 		model.trainParameter(args[0], args[1]);
 		model.saveTranslationMapToFile(args[2]);
+		model.translateTestFile(args[3], args[4]);
 		System.out.println("Finished");
 	}
 	

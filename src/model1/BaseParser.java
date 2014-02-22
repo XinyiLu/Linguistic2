@@ -46,6 +46,7 @@ public abstract class BaseParser {
 		return biModel.getLogModelProbFromFile(testFile,beta);
 	}
 	
+	
 	@SuppressWarnings({ "rawtypes"})
 	abstract void saveLinePairToMap(String kline,String vline,HashMap hashMap,int index);
 }
