@@ -1,5 +1,10 @@
 #/user/bin/bash
 
 javac model1/*.java
-java model1.Model1 data/english-senate-0.txt data/french-senate-0.txt prob data/french-senate-2.txt dumb_decoding simp_decoding
+#java model1.Model1 data/english-senate-0.txt data/french-senate-0.txt prob data/french-senate-2.txt dumb_decoding simp_decoding data/english-senate-2.txt
+#./verydumb data/french-senate-0.txt data/english-senate-0.txt data/french-senate-2.txt
 
+#./noisychannel data/french-senate-0.txt data/english-senate-0.txt data/french-senate-2.txt
+
+./fscore dumb_result data/english-senate-2.txt
+./fscore noisy_result data/english-senate-2.txt
