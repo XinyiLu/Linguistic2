@@ -58,14 +58,15 @@ public class Model1 extends BaseParser{
 		ArrayList<String> klist=new ArrayList<String>(Arrays.asList(kwords));
 		ArrayList<String> vlist=new ArrayList<String>(Arrays.asList(vwords));
 		assert(kwords.length>0&&vwords.length>0);
+		//klist.add("");
 		linePairMap.put(index,new ArrayList[]{klist,vlist});
 		//double partialCount=1.0/klist.size();
-		for(String kword:kwords){
+		for(String kword:klist){
 			if(!map.containsKey(kword)){
 				map.put(kword,new HashMap<String,ProbUnit>());
 			}
 			HashMap<String,ProbUnit> subMap=map.get(kword);
-			for(String vword:vwords){
+			for(String vword:vlist){
 				if(!subMap.containsKey(vword)){
 					subMap.put(vword,new ProbUnit());
 				}
@@ -145,10 +146,10 @@ public class Model1 extends BaseParser{
 		for(String kword:translationProbMap.keySet()){
 			HashMap<String,ProbUnit> subMap=translationProbMap.get(kword);
 			for(String vword:subMap.keySet()){
-				if(!translationUnitMap.containsKey(vword)){
-					translationUnitMap.put(vword,new TranslationUnit(kword,subMap.get(vword).condProb));
-				}else if(translationUnitMap.get(vword).transProb<subMap.get(vword).condProb){
-					translationUnitMap.put(vword,new TranslationUnit(kword,subMap.get(vword).condProb));
+				if(!translationUnitMap.containsKey(kword)){
+					translationUnitMap.put(kword,new TranslationUnit(vword,subMap.get(vword).condProb));
+				}else if(translationUnitMap.get(kword).transProb<subMap.get(vword).condProb){
+					translationUnitMap.put(kword,new TranslationUnit(vword,subMap.get(vword).condProb));
 				}
 			}
 		}
@@ -222,16 +223,11 @@ public class Model1 extends BaseParser{
 	public String translateSentenceWithNoisyChannelDecoding(String line,BigramModel biModel,double beta,int typeCount){
 		String[] words=line.split(" ");
 		String resultStr="";
-		ArrayList<String> list=new ArrayList<String> (words.length+2);
-		for(String word:words){
-			if(word.isEmpty())
-			continue;
-			list.add(word);
-		}
+		ArrayList<String> list=new ArrayList<String> (Arrays.asList(words));
 		if(list.size()>10){
 			return line;
 		}
-		list.add("");
+		
 		//get each word's translation,the first word is padding symbol
 		String prevWord="";
 		for(String word:list){
@@ -247,9 +243,10 @@ public class Model1 extends BaseParser{
 		if(subMap==null)
 			return word;
 		String bestWord="";
-		double prob=Integer.MIN_VALUE;
+		double prob=-1000;
 		for(String testWord:subMap.keySet()){
 			double testProb=Math.log(biModel.getBigramWordSmoothedProb(prevWord, testWord, beta, typeCount))+Math.log(subMap.get(testWord).condProb);
+			
 			if(testProb>prob){
 				bestWord=testWord;
 				prob=testProb;
@@ -316,14 +313,12 @@ public class Model1 extends BaseParser{
 	}
 	
 	public static void main(String[] args){
-		Model1 dumbModel=new Model1();
-		dumbModel.trainParameter(args[0],args[1]);
-		dumbModel.translateTestFileWithDumbDecoding(args[3], args[4]);
-		System.out.println("Dumb model F score is:"+dumbModel.getFScore(args[4], args[6]));
 		
+		Model1 mtModel=new Model1();
+		mtModel.trainParameter(args[1], args[0]);	
+		mtModel.translateTestFileWithDumbDecoding(args[3], args[4]);
+		System.out.println("Dumb model F score is:"+mtModel.getFScore(args[4], args[6]));
 		
-		Model1 simpleModel=new Model1();
-		simpleModel.trainParameter(args[1], args[0]);		
 		PaddedUnigramModel uniModel=new PaddedUnigramModel();
 		uniModel.trainModel(args[0]);
 		//optimize alpha
@@ -332,9 +327,10 @@ public class Model1 extends BaseParser{
 		BigramModel biModel=new BigramModel(uniModel,alpha);
 		biModel.trainModel(args[0]);
 		double beta=120;
-		simpleModel.translateTestFileWithNoisyChannelDecoding(args[3], args[5], biModel, beta);
-		System.out.println("Simple model F score is:"+simpleModel.getFScore(args[5], args[6]));
+		mtModel.translateTestFileWithNoisyChannelDecoding(args[3], args[5], biModel, beta);
+		System.out.println("Simple model F score is:"+mtModel.getFScore(args[5], args[6]));
 		System.out.println("Finished");
+		
 	}
 
 
