@@ -1,6 +1,7 @@
 package model1;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 
 //Bigram Model inherits from BaseWordCounter
@@ -34,12 +35,7 @@ public class BigramModel extends BaseWordCounter {
 	void splitLineToMap(HashMap hashMap, String line) {
 		String[] words=line.split(" ");
 		HashMap<String,HashMap<String,Integer>> bigramMap=(HashMap<String,HashMap<String,Integer>>)hashMap;
-		ArrayList<String> wordList=new ArrayList<String>(words.length+1);
-		for(String word:words){
-			if(word.isEmpty())
-				continue;
-			wordList.add(word);
-		}
+		ArrayList<String> wordList=new ArrayList<String>(Arrays.asList(words));		
 		wordList.add(0,"");
 		wordList.add("");
 		//count the number of each word

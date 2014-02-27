@@ -135,7 +135,7 @@ public class Model1 extends BaseParser{
 		double prevProb=0;
 		double curProb=updatePartialCountAndProb();
 		int iter=0;
-		while(iter<10&&Math.abs(Math.abs(curProb)-Math.abs(prevProb))>0.5){
+		while(Math.abs(Math.abs(curProb)-Math.abs(prevProb))>0.5){
 			System.out.println(Math.abs(curProb)-Math.abs(prevProb));
 			prevProb=curProb;
 			curProb=updatePartialCountAndProb();
@@ -243,7 +243,7 @@ public class Model1 extends BaseParser{
 		if(subMap==null)
 			return word;
 		String bestWord="";
-		double prob=-1000;
+		double prob=Integer.MIN_VALUE;
 		for(String testWord:subMap.keySet()){
 			double testProb=Math.log(biModel.getBigramWordSmoothedProb(prevWord, testWord, beta, typeCount))+Math.log(subMap.get(testWord).condProb);
 			
@@ -288,11 +288,6 @@ public class Model1 extends BaseParser{
 				String[] cwords=cline.split(" ");
 				tCount+=twords.length;
 				sCount+=cwords.length;
-				/*int minCount=Math.min(twords.length,cwords.length);
-				for(int i=0;i<minCount;i++){
-					rCount+=(twords[i].equals(cwords[i])?1:0);
-				}*/
-				
 				HashSet<String> hashSet=new HashSet<String>(Arrays.asList(twords));
 				for(String word:cwords){
 					if(hashSet.contains(word)){
