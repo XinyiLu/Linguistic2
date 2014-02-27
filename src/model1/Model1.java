@@ -1,5 +1,4 @@
 package model1;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileInputStream;
@@ -9,7 +8,6 @@ import java.io.InputStreamReader;
 import java.util.*;
 
 public class Model1 extends BaseParser{
-	
 	class ProbUnit{
 		double condProb;
 		double partialCount;
@@ -20,12 +18,12 @@ public class Model1 extends BaseParser{
 			partialCount=0;
 		}
 		
-		public ProbUnit(int prob,int count){
+		public ProbUnit(double prob,double count){
 			condProb=prob;
 			partialCount=count;
 		}
 	}
-	
+		
 	class TranslationUnit{
 		double transProb;
 		String bestWord;
@@ -38,18 +36,18 @@ public class Model1 extends BaseParser{
 			transProb=0;
 		}
 	}
-	
+		
 	HashMap<String,HashMap<String,ProbUnit>> translationProbMap;
 	HashMap<Integer,ArrayList<String>[]> linePairMap;
 	HashMap<String,TranslationUnit> translationUnitMap;
-	
-	
+		
+		
 	public Model1(){
 		translationProbMap=new HashMap<String,HashMap<String,ProbUnit>>();
 		linePairMap=new HashMap<Integer,ArrayList<String>[]>();
 		translationUnitMap=new HashMap<String,TranslationUnit>();
 	}
-
+		
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	void saveLinePairToMap(String kline, String vline, HashMap hashMap,int index) {
 		
@@ -57,23 +55,11 @@ public class Model1 extends BaseParser{
 		String[] kwords=kline.split(" ");
 		String[] vwords=vline.split(" ");
 		
-		ArrayList<String> klist=new ArrayList<String> (kwords.length+1);
-		for(String word:kwords){
-			if(!word.isEmpty()){
-				klist.add(word);
-			}
-		}
-		
-		ArrayList<String> vlist=new ArrayList<String> (vwords.length+1);;
-		for(String word:vwords){
-			if(!word.isEmpty()){
-				vlist.add(word);
-			}
-		}
-		
-		assert(klist.size()>0&&vlist.size()>0);
-		linePairMap.put(index,(ArrayList<String>[])(new ArrayList[]{klist,vlist}));
-		double partialCount=1.0/klist.size();
+		ArrayList<String> klist=new ArrayList<String>(Arrays.asList(kwords));
+		ArrayList<String> vlist=new ArrayList<String>(Arrays.asList(vwords));
+		assert(kwords.length>0&&vwords.length>0);
+		linePairMap.put(index,new ArrayList[]{klist,vlist});
+		//double partialCount=1.0/klist.size();
 		for(String kword:kwords){
 			if(!map.containsKey(kword)){
 				map.put(kword,new HashMap<String,ProbUnit>());
@@ -83,12 +69,12 @@ public class Model1 extends BaseParser{
 				if(!subMap.containsKey(vword)){
 					subMap.put(vword,new ProbUnit());
 				}
-				subMap.get(vword).partialCount+=partialCount;
+				//subMap.get(vword).partialCount+=partialCount;
 			}
 		}
 		
 	}
-	
+		
 	public double updatePartialCountAndProb(){
 		
 		double resultProb=0.0;
@@ -110,11 +96,10 @@ public class Model1 extends BaseParser{
 			for(String kword:linePair[0]){
 				HashMap<String,ProbUnit> subMap=translationProbMap.get(kword);
 				for(String vword:linePair[1]){
-					assert(subMap.containsKey(vword));
-					totalProbMap.put(vword,(totalProbMap.containsKey(vword)?totalProbMap.get(vword):0)+subMap.get(vword).condProb);		
+					totalProbMap.put(vword,(totalProbMap.containsKey(vword)?totalProbMap.get(vword):0)+subMap.get(vword).condProb);	
 				}
-			}			
-
+			}	
+		
 			//update the partial count for each pair
 			for(String kword:linePair[0]){
 				HashMap<String,ProbUnit> subMap=translationProbMap.get(kword);
@@ -128,7 +113,7 @@ public class Model1 extends BaseParser{
 				resultProb+=Math.log(prob);
 			}	
 		}
-		
+		//if the conditional probability is larger than 0.5, we should delete all the other conditional probabilities of this vword
 		//update the conditional probability like p(f|e)
 		for(String kword:translationProbMap.keySet()){
 			double count=0;
@@ -141,18 +126,19 @@ public class Model1 extends BaseParser{
 				subMap.get(vword).condProb=unitCount/count;
 			}
 		}
-		
+			
 		return resultProb;
 	}
-
+		
 	public void trainTranslationProb(){
 		double prevProb=0;
 		double curProb=updatePartialCountAndProb();
-		
-		while(Math.abs(curProb-prevProb)>0.5){
-			System.out.println(curProb-prevProb);
+		int iter=0;
+		while(iter<10&&Math.abs(Math.abs(curProb)-Math.abs(prevProb))>0.5){
+			System.out.println(Math.abs(curProb)-Math.abs(prevProb));
 			prevProb=curProb;
 			curProb=updatePartialCountAndProb();
+			iter++;
 		}
 		
 		//update translation unit map
@@ -167,28 +153,28 @@ public class Model1 extends BaseParser{
 			}
 		}
 	}
-	
+		
 	public void trainParameter(String kfile,String vfile){
 		parseFileToMap(kfile,vfile,translationProbMap);
 		trainTranslationProb();
 	}
-	
+		
 	public void saveTranslationMapToFile(String fileName){
 		try {
 			BufferedWriter writer=new BufferedWriter(new FileWriter(fileName));
 			//for each word in keySet of the map, save the key and value and write a new line
 			for(String word:translationUnitMap.keySet()){
-				writer.write(word+" "+translationUnitMap.get(word).bestWord+" "+translationUnitMap.get(word).transProb);
-				writer.newLine();
+			writer.write(word+" "+translationUnitMap.get(word).bestWord+" "+translationUnitMap.get(word).transProb);
+			writer.newLine();
 			}
 			//close the buffered writer
 			writer.close();
-			
+		
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
-	
+		
 	public void translateTestFileWithDumbDecoding(String testFile,String resultFile){
 		try {
 			BufferedReader reader=new BufferedReader(new InputStreamReader(new FileInputStream(testFile),"ISO-8859-1"));
@@ -207,10 +193,10 @@ public class Model1 extends BaseParser{
 		}
 		
 	}
-	
+		
 	public void translateTestFileWithNoisyChannelDecoding(String testFile,String resultFile,BigramModel biModel,double beta){
 		try {
-			//first, we need to get the typeCount of the bigram model
+		//first, we need to get the typeCount of the bigram model
 			HashMap tempMap=biModel.generateHashMap();
 			biModel.parseFileToMap(testFile,tempMap);
 			int typeCount=biModel.getTypeCount(tempMap);
@@ -232,14 +218,14 @@ public class Model1 extends BaseParser{
 		}
 		
 	}
-	
+		
 	public String translateSentenceWithNoisyChannelDecoding(String line,BigramModel biModel,double beta,int typeCount){
 		String[] words=line.split(" ");
 		String resultStr="";
 		ArrayList<String> list=new ArrayList<String> (words.length+2);
 		for(String word:words){
 			if(word.isEmpty())
-				continue;
+			continue;
 			list.add(word);
 		}
 		if(list.size()>10){
@@ -255,7 +241,7 @@ public class Model1 extends BaseParser{
 		}
 		return resultStr.substring(0, resultStr.length()-1);
 	}
-	
+		
 	public String getBestWordWithNoisyChannelDecoding(String prevWord,String word,BigramModel biModel,double beta,int typeCount){
 		HashMap<String,ProbUnit> subMap=translationProbMap.get(word);
 		if(subMap==null)
@@ -271,14 +257,14 @@ public class Model1 extends BaseParser{
 		}
 		return bestWord;
 	}
-	
+		
 	public String translateSentenceWithDumbDecoding(String line){
 		String[] words=line.split(" ");
 		String resultStr="";
-		
+		if(words.length>10){
+			return line;
+		}
 		for(String word:words){
-			if(word.isEmpty())
-				continue;
 			if(!translationUnitMap.containsKey(word)){
 				resultStr+=word+" ";
 			}else{
@@ -289,15 +275,55 @@ public class Model1 extends BaseParser{
 		
 		return resultStr.substring(0,resultStr.length()-1);
 	}
+		
+	public double getFScore(String resultFile,String correctFile){
+		//get the word count of resultFile and correctFile
+		int tCount=0,rCount=0,sCount=0;
+		try {
+			BufferedReader tReader = new BufferedReader(new InputStreamReader(new FileInputStream(resultFile),"ISO-8859-1"));
+			BufferedReader cReader=new BufferedReader(new InputStreamReader(new FileInputStream(correctFile),"ISO-8859-1"));
+			String tline=null,cline=null;
+			//each time we read a line, count its words
+			while((tline=tReader.readLine())!=null&&(cline=cReader.readLine())!=null){
+				String[] twords=tline.split(" ");
+				if(twords.length>10)
+					continue;
+				String[] cwords=cline.split(" ");
+				tCount+=twords.length;
+				sCount+=cwords.length;
+				/*int minCount=Math.min(twords.length,cwords.length);
+				for(int i=0;i<minCount;i++){
+					rCount+=(twords[i].equals(cwords[i])?1:0);
+				}*/
+				
+				HashSet<String> hashSet=new HashSet<String>(Arrays.asList(twords));
+				for(String word:cwords){
+					if(hashSet.contains(word)){
+						rCount++;
+					}
+				}
+			}
+			//close the buffered reader
+			tReader.close();
+			cReader.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		double precision=rCount*1.0/tCount;
+		double recall=rCount*1.0/sCount;
+		System.out.println("right count:"+rCount+" precision:"+precision+" recall:"+recall);
+		return 2*precision*recall/(precision+recall);		
+	}
 	
 	public static void main(String[] args){
-		assert(args.length==3);
-		Model1 model=new Model1();
-		model.trainParameter(args[1], args[0]);
-		//model.saveTranslationMapToFile(args[2]);
-		System.out.println("probability optimized");
+		Model1 dumbModel=new Model1();
+		dumbModel.trainParameter(args[0],args[1]);
+		dumbModel.translateTestFileWithDumbDecoding(args[3], args[4]);
+		System.out.println("Dumb model F score is:"+dumbModel.getFScore(args[4], args[6]));
 		
-		//model.translateTestFileWithDumbDecoding(args[3], args[4]);
+		
+		Model1 simpleModel=new Model1();
+		simpleModel.trainParameter(args[1], args[0]);		
 		PaddedUnigramModel uniModel=new PaddedUnigramModel();
 		uniModel.trainModel(args[0]);
 		//optimize alpha
@@ -306,11 +332,13 @@ public class Model1 extends BaseParser{
 		BigramModel biModel=new BigramModel(uniModel,alpha);
 		biModel.trainModel(args[0]);
 		double beta=120;
-		model.translateTestFileWithNoisyChannelDecoding(args[3], args[5], biModel, beta);
+		simpleModel.translateTestFileWithNoisyChannelDecoding(args[3], args[5], biModel, beta);
+		System.out.println("Simple model F score is:"+simpleModel.getFScore(args[5], args[6]));
 		System.out.println("Finished");
 	}
-	
-	
-	
-	
+
+
+
+
+
 }
